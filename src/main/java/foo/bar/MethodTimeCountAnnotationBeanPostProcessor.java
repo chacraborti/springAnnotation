@@ -1,6 +1,8 @@
 package foo.bar;
 
 import foo.bar.annotation.MethodTimeCount;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 
@@ -12,6 +14,8 @@ import java.util.Map;
 
 
 public class MethodTimeCountAnnotationBeanPostProcessor implements BeanPostProcessor {
+
+    private Logger logger = LoggerFactory.getLogger(HelloApp.class);
     private Map<String, Class> nameClassMap = new HashMap<>();
     private Map<String, Method> nameMethodMap = new HashMap<>();
 
@@ -39,7 +43,7 @@ public class MethodTimeCountAnnotationBeanPostProcessor implements BeanPostProce
                         long before = System.nanoTime();
                         Object methodInvocation = method.invoke(bean, args);
                         long after = System.nanoTime();
-                        System.out.println("Method \""+method.getName()+"\" working time: " + (after - before));
+                        logger.info("Method \""+method.getName()+"\" of "+clazz.getName()+" working time: " + (after - before));
                         return methodInvocation;
                     } else {
                         return method.invoke(bean, args);

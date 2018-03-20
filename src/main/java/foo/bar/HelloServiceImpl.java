@@ -13,7 +13,19 @@ public class HelloServiceImpl implements HelloService {
     }
 
     @Override
+    public String sayHello(String s) {
+        return "Hello "+s;
+    }
+
+    @Override
     public String sayGoodBye() {
         return "Bye!";
     }
+
+    @Override
+    public String hey() {
+        return "hey";
+    }
+
+
 }
