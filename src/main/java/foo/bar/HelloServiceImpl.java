@@ -26,6 +26,4 @@ public class HelloServiceImpl implements HelloService {
     public String hey() {
         return "hey";
     }
-
-
 }

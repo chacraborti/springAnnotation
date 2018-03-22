@@ -12,12 +12,9 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.internal.matchers.GreaterThan;
 import org.mockito.runners.MockitoJUnitRunner;
 
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -36,12 +33,14 @@ public class MethodTimeCountAnnotationBeanPostProcessorTest {
     @Captor
     private ArgumentCaptor<LoggingEvent> captorLoggingEvent;
 
+    Logger root;
+
     @Mock
     private Appender mockAppender;
 
     @Before
     public void setUp() throws Exception {
-        Logger root = LogManager.getRootLogger();
+        root = LogManager.getRootLogger();
         root.addAppender(mockAppender);
         root.setLevel(Level.INFO);
     }
@@ -50,82 +49,94 @@ public class MethodTimeCountAnnotationBeanPostProcessorTest {
     @Test
     public void logIfAnnotationPresent() throws InvocationTargetException, IllegalAccessException {
         TestAnnotated testAnnotated = new TestAnnotatedImpl();
-        Object objectBefore = postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
+        TestAnnotated objectBefore = (TestAnnotated) postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
         TestAnnotated objectAfter = (TestAnnotated) postProcessor.postProcessAfterInitialization(objectBefore, "NAME");
-//        objectAfter.doSmth();
+        objectAfter.doSmth();
+        verify(mockAppender, times(1)).doAppend(captorLoggingEvent.capture());
+        List<LoggingEvent> loggingEventAllValues = captorLoggingEvent.getAllValues();
+        LoggingEvent loggingEvent0 = loggingEventAllValues.get(0);
+        assertThat("", loggingEvent0.getRenderedMessage(), containsString("Method"));
+        assertThat("", loggingEvent0.getRenderedMessage(), containsString(testAnnotated.getClass().getName()));
+        assertThat("", Level.INFO, is(loggingEvent0.getLevel()));
 
-        Method [] methods = TestAnnotated.class.getMethods();
-        List<Method> methodsAnnotatedList = new ArrayList<>();
-        for (int i = 0; i < methods.length; i++) {
-            if(methods[i].isAnnotationPresent(MethodTimeCount.class)) {
-                methods[i].invoke(objectAfter);
-                methodsAnnotatedList.add(methods[i]);
-            }
-        }
-        assertThat(methodsAnnotatedList.size(), new GreaterThan<>(0));
-        verify(mockAppender, times(methodsAnnotatedList.size())).doAppend(captorLoggingEvent.capture());
-        for (Method method: methodsAnnotatedList) {
-            List<LoggingEvent> loggingEventAllValues = captorLoggingEvent.getAllValues();
-            LoggingEvent loggingEvent0 = loggingEventAllValues.get(0);
-            assertThat("", loggingEvent0.getRenderedMessage(), containsString("Method"));
-            assertThat("", loggingEvent0.getRenderedMessage(), containsString(method.getName()));
-            assertThat("", Level.INFO, is(loggingEvent0.getLevel()));
-        }
+//        Method[] methods = TestAnnotated.class.getMethods();
+//        List<Method> methodsAnnotatedList = new ArrayList<>();
+//        for (int i = 0; i < methods.length; i++) {
+//            if (methods[i].isAnnotationPresent(MethodTimeCount.class)) {
+//                Method method = methods[i];
+//                methodsAnnotatedList.add(method);
+//                method.invoke(objectAfter);
+//            }
+//        }
+//        assertThat(methodsAnnotatedList.size(), new GreaterThan<>(0));
+
     }
 
     @Test
     public void LogNothingIfAnnotationNotPresent() {
         TestAnnotated testAnnotated = new TestAnnotatedImpl();
-        Object objectBefore = postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
+        TestAnnotated objectBefore = (TestAnnotated) postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
         TestAnnotated objectAfter = (TestAnnotated) postProcessor.postProcessAfterInitialization(objectBefore, "NAME");
-        objectAfter.doSmth("TEST");
+
         objectAfter.doSmthElse();
-
-        Method [] methods = testAnnotated.getClass().getMethods();
-        List<Method> methodsNotAnnotatedList = new ArrayList<>();
-        for (int i = 0; i < methods.length; i++) {
-            if(!methods[i].isAnnotationPresent(MethodTimeCount.class)) {
-                methodsNotAnnotatedList.add(methods[i]);
-            }
-        }
-        assertThat(methodsNotAnnotatedList.size(), new GreaterThan<>(0));
-
-        for (Method method: methodsNotAnnotatedList) {
-            verify(mockAppender, times(0));
-        }
-
+        verify(mockAppender, times(0)).doAppend(captorLoggingEvent.capture());
     }
 
     @Test
     public void LogNothingOverloadedMethodWithNoAnnotation() {
         TestAnnotated testAnnotated = new TestAnnotatedImpl();
-        Object objectBefore = postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
-        Object objectAfter = postProcessor.postProcessAfterInitialization(objectBefore, "NAME");
-        testAnnotated.doSmth();
-
-        verify(mockAppender, times(1)).doAppend(captorLoggingEvent.capture());
-        List<LoggingEvent> loggingEventAllValues = captorLoggingEvent.getAllValues();
-        LoggingEvent loggingEvent0 = loggingEventAllValues.get(0);
-        assertThat("", loggingEvent0.getRenderedMessage(), containsString("Method"));
-        assertThat("", loggingEvent0.getRenderedMessage(), containsString(testAnnotated.getClass().getMethods()[0].getName()));
-        assertThat("", Level.INFO, is(loggingEvent0.getLevel()));
+        TestAnnotated objectBefore = (TestAnnotated) postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
+        TestAnnotated objectAfter = (TestAnnotated) postProcessor.postProcessAfterInitialization(objectBefore, "NAME");
+        objectAfter.doSmth("Test");
+        verify(mockAppender, times(0)).doAppend(captorLoggingEvent.capture());
     }
 
     @Test
     public void LogNothingMethodsWithoutAnnotationWithTheSameNameInAnotherClass() {
-
+        TestAnnotated testAnnotated = new TestAnnotatedImpl();
+        TestAnnotated objectBefore = (TestAnnotated) postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
+        TestAnnotated objectAfter = (TestAnnotated) postProcessor.postProcessAfterInitialization(objectBefore, "NAME");
+        AnotherTestAnnotated anotherTestAnnotated = new AnotherTestAnnotated();
+        anotherTestAnnotated.doSmth();
+        verify(mockAppender, times(0)).doAppend(captorLoggingEvent.capture());
     }
 
 
     class TestAnnotatedImpl implements TestAnnotated {
 
         @MethodTimeCount
-        public void doSmth(){}
+        @Override
+        public void doSmth() {
+        }
 
         @Override
-        public void doSmth(String s){}
+        public void doSmth(String s) {
+        }
 
         @Override
-        public void doSmthElse(){}
+        public void doSmthElse() {
+        }
+    }
+
+    public interface TestAnnotated {
+
+
+        void doSmth();
+
+        void doSmth(String s);
+
+        void doSmthElse();
+    }
+
+    class AnotherTestAnnotated {
+
+        public void doSmth() {
+        }
+
+        public void doSmth(String s) {
+        }
+
+        public void doSmthElse() {
+        }
     }
 }
