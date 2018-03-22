@@ -83,7 +83,7 @@ public class MethodTimeCountAnnotationBeanPostProcessorTest {
     }
 
     @Test
-    public void LogNothingOverloadedMethodWithNoAnnotation() {
+    public void logNothingOverloadedMethodWithNoAnnotation() {
         TestAnnotated testAnnotated = new TestAnnotatedImpl();
         TestAnnotated objectBefore = (TestAnnotated) postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
         TestAnnotated objectAfter = (TestAnnotated) postProcessor.postProcessAfterInitialization(objectBefore, "NAME");
@@ -92,12 +92,17 @@ public class MethodTimeCountAnnotationBeanPostProcessorTest {
     }
 
     @Test
-    public void LogNothingMethodsWithoutAnnotationWithTheSameNameInAnotherClass() {
+    public void logNothingMethodsWithoutAnnotationWithTheSameNameInAnotherClass() {
         TestAnnotated testAnnotated = new TestAnnotatedImpl();
         TestAnnotated objectBefore = (TestAnnotated) postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
         TestAnnotated objectAfter = (TestAnnotated) postProcessor.postProcessAfterInitialization(objectBefore, "NAME");
-        AnotherTestAnnotated anotherTestAnnotated = new AnotherTestAnnotated();
-        anotherTestAnnotated.doSmth();
+        objectAfter.doSmthElse();
+
+        AnotherTestAnnotated anotherTestAnnotated = new AnotherTestAnnotatedImpl();
+        AnotherTestAnnotated anotherObjectBefore = (AnotherTestAnnotated) postProcessor.postProcessBeforeInitialization(anotherTestAnnotated, "ANOTHER_NAME");
+        AnotherTestAnnotated anotherObjectAfter = (AnotherTestAnnotated) postProcessor.postProcessAfterInitialization(anotherObjectBefore, "ANOTHER_NAME");
+        anotherObjectAfter.doSmth();
+
         verify(mockAppender, times(0)).doAppend(captorLoggingEvent.capture());
     }
 
@@ -128,7 +133,7 @@ public class MethodTimeCountAnnotationBeanPostProcessorTest {
         void doSmthElse();
     }
 
-    class AnotherTestAnnotated {
+    class AnotherTestAnnotatedImpl implements AnotherTestAnnotated{
 
         public void doSmth() {
         }
@@ -136,7 +141,19 @@ public class MethodTimeCountAnnotationBeanPostProcessorTest {
         public void doSmth(String s) {
         }
 
+        @MethodTimeCount
         public void doSmthElse() {
         }
+    }
+
+    interface AnotherTestAnnotated {
+
+        public void doSmth();
+
+
+        public void doSmth(String s);
+
+        @MethodTimeCount
+        public void doSmthElse() ;
     }
 }
