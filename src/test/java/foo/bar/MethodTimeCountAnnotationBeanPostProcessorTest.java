@@ -95,12 +95,14 @@ public class MethodTimeCountAnnotationBeanPostProcessorTest {
     public void logNothingMethodsWithoutAnnotationWithTheSameNameInAnotherClass() {
         TestAnnotated testAnnotated = new TestAnnotatedImpl();
         TestAnnotated objectBefore = (TestAnnotated) postProcessor.postProcessBeforeInitialization(testAnnotated, "NAME");
-        TestAnnotated objectAfter = (TestAnnotated) postProcessor.postProcessAfterInitialization(objectBefore, "NAME");
-        objectAfter.doSmthElse();
 
         AnotherTestAnnotated anotherTestAnnotated = new AnotherTestAnnotatedImpl();
         AnotherTestAnnotated anotherObjectBefore = (AnotherTestAnnotated) postProcessor.postProcessBeforeInitialization(anotherTestAnnotated, "ANOTHER_NAME");
+
+        TestAnnotated objectAfter = (TestAnnotated) postProcessor.postProcessAfterInitialization(objectBefore, "NAME");
         AnotherTestAnnotated anotherObjectAfter = (AnotherTestAnnotated) postProcessor.postProcessAfterInitialization(anotherObjectBefore, "ANOTHER_NAME");
+
+        objectAfter.doSmthElse();
         anotherObjectAfter.doSmth();
 
         verify(mockAppender, times(0)).doAppend(captorLoggingEvent.capture());
